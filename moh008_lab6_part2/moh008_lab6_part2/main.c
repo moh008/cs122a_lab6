@@ -97,13 +97,13 @@ int Button_tick(int state)
 	switch (state) //state action
 	{
 		case inactive:
-		tasks[0]->active = 0;
+		tasks[1]->active = 0;
 		LCD_ClearScreen();
 		break;
 		
 		case press:
 		PORTB = 0x01;	//turn on the backlight
-		tasks[0]->active = 1;
+		tasks[1]->active = 1;
 		wakecount++;
 		break;
 		
@@ -129,26 +129,34 @@ int main(void)
 	
 	unsigned char i = 0;
 	
-	unsigned long int SMTick1_period = 2;
-	unsigned long int SMTick2_period = 1;
+	unsigned long int SMTick1_calc = 50;
+	unsigned long int SMTick2_calc = 100;
+	
+	unsigned long int tmpGCD = 1;
+	tmpGCD = findGCD(SMTick1_calc, SMTick2_calc);
+	
+	unsigned long int GCD = tmpGCD;
+	
+	unsigned long int SMTick1_period = SMTick1_calc/GCD;
+	unsigned long int SMTick2_period = SMTick2_calc/GCD;
 	
 	//Task 1 Counter task
 	task1.state = -1; //task initial state
 	task1.period = SMTick1_period;
 	task1.active = 0x01;
 	task1.elapsedTime = SMTick1_period;
-	task1.TickFct = &IncDec_tick;
+	task1.TickFct = &Button_tick;
 	
 	//Task 1 Counter task
 	task2.state = -1; //task initial state
 	task2.period = SMTick2_period;
 	task2.active = 0x01;
 	task2.elapsedTime = SMTick2_period;
-	task2.TickFct = &Button_tick;
+	task2.TickFct = &IncDec_tick;
 	
 	initPCInt();
 	LCD_init();
-	TimerSet(50);
+	TimerSet(GCD);
 	TimerOn();
 	sei();				//set enable interrupt
 	
