@@ -140,14 +140,14 @@ int main(void)
 	unsigned long int SMTick1_period = SMTick1_calc/GCD;
 	unsigned long int SMTick2_period = SMTick2_calc/GCD;
 	
-	//Task 1 Counter task
+	//Task 1 button task
 	task1.state = -1; //task initial state
 	task1.period = SMTick1_period;
 	task1.active = 0x01;
 	task1.elapsedTime = SMTick1_period;
 	task1.TickFct = &Button_tick;
 	
-	//Task 1 Counter task
+	//Task 2 Counter task
 	task2.state = -1; //task initial state
 	task2.period = SMTick2_period;
 	task2.active = 0x01;
