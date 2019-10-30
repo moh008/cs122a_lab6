@@ -1,6 +1,6 @@
 /* Partner Name & email : Stephanie scabr006@ucr.edu
  * Lab Section: 021
- * Assignment: Lab6 Exercise 3
+ * Assignment: Lab6 Exercise 1
  * Created: 2019-10-25 오후 2:24:34
  * Author : Lincoln
  *
@@ -74,19 +74,24 @@ int Button_tick(int state)
 	switch (state) //state action
 	{
 		case inactive:
+		tasks[1]->active = 0x00;
+		LCD_ClearScreen();
 		break;
 		
 		case press:
+		tasks[1]->active = 0x01;
 		PORTB = 0x01;	//turn on the backlight
 		wakecount++;
 		break;
 		
 		case hold:
+		tasks[1]->active = 0x01;
 		PORTB = 0x01;
 		wakecount++;
 		break;
 		
 		case released:
+		tasks[1]->active = 0x01;
 		PORTB = 0x01;
 		wakecount++;
 		break;
