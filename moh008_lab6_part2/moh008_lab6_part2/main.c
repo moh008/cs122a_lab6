@@ -8,69 +8,64 @@
  */
 #include <avr/io.h>
 #include <avr/interrupt.h>
+
 #include "scheduler.h"
 #include "timer.h"
 #include "lcd.h"
 #include "incDecSM.h"
 #define SWITCH_PRESSED !(PINA & (1<<PINA0))
 
-static task task1;
-task *tasks[] = {&task1};
+static task task1, task2;
+task *tasks[] = {&task1, &task2};
 const unsigned short numTasks = sizeof (tasks)/ sizeof(task*);
 
 void initPCInt()
 {
-	SREG = 0x01;		//Enable global interrupts
+	SREG = 0x80;		//Enable global interrupts
 	PCICR = 0x01;		//Enable Pin Change Interrupt 0 (Pins 7 ... 0)
 	PCMSK0 = 0x01;		//Enable Pin Change Interrupt on PCINT0 which is PA0
 }
 
 //-------------------------------------------------------------------------------------
 
+unsigned char wakeDisplay = 0;
 unsigned char wakecount = 0;
-ISR(PCINT0_vect)	//NEED TO TURN ON FOR 3Seconds
+ISR(PCINT0_vect)
 {
 	if(SWITCH_PRESSED)
 	{
-		while(wakecount != 10)
-		{
-			PORTB = 0x01;
-			tasks[0]->active = 1;
-			wakecount++;
-		}
-		wakecount = 0;
+		wakeDisplay = 1;
 	}
 	else
 	{
-		PORTB = 0x00;
-		tasks[0]->active = 0;
+		wakeDisplay = 0;
 	}
 }
  //---------------------------------------------------------------------------------------
-/*
+
 enum Buttons_States {inactive, press, hold, released};
 int Button_tick(int state)
 {
 	switch (state)	//state transition
 	{
 		case inactive:
-		PORTB = 0x00;	//turn off the backlight
 		wakecount = 0;
-		if(SWITCH_PRESSED)
+		PORTB = 0x00;
+		if(wakeDisplay)
 		state = press;
 		else
 		state = inactive;
 		break;
 		
 		case press:
-		if(SWITCH_PRESSED)
+		if(wakeDisplay)
 		{
 			state = hold;
 		}
 		break;
 		
 		case hold:
-		if(SWITCH_PRESSED)
+		if(wakeDisplay)
 		{	
 			state = hold;
 		}
@@ -83,7 +78,7 @@ int Button_tick(int state)
 		case released:
 		if(wakecount == 60)
 		state = inactive;
-		if (SWITCH_PRESSED)
+		else if (wakeDisplay)
 		{
 			state = press;
 			wakecount = 0;
@@ -96,19 +91,19 @@ int Button_tick(int state)
 		
 		default:
 		state = inactive;
-		LCD_ClearScreen();
 		break;
 	}
 	
 	switch (state) //state action
 	{
 		case inactive:
-		tasks[1]->active = 0;
+		tasks[0]->active = 0;
+		LCD_ClearScreen();
 		break;
 		
 		case press:
 		PORTB = 0x01;	//turn on the backlight
-		tasks[1]->active = 1;
+		tasks[0]->active = 1;
 		wakecount++;
 		break;
 		
@@ -124,7 +119,7 @@ int Button_tick(int state)
 	}
 	return state;
 }
-*/	
+	
 int main(void)
 {
 	DDRA = 0x00; PORTA = 0xFF;
@@ -135,6 +130,7 @@ int main(void)
 	unsigned char i = 0;
 	
 	unsigned long int SMTick1_period = 2;
+	unsigned long int SMTick2_period = 1;
 	
 	//Task 1 Counter task
 	task1.state = -1; //task initial state
@@ -143,12 +139,18 @@ int main(void)
 	task1.elapsedTime = SMTick1_period;
 	task1.TickFct = &IncDec_tick;
 	
+	//Task 1 Counter task
+	task2.state = -1; //task initial state
+	task2.period = SMTick2_period;
+	task2.active = 0x01;
+	task2.elapsedTime = SMTick2_period;
+	task2.TickFct = &Button_tick;
+	
 	initPCInt();
 	LCD_init();
 	TimerSet(50);
 	TimerOn();
-	
-	sei();
+	sei();				//set enable interrupt
 	
 	while (1)
 	{
